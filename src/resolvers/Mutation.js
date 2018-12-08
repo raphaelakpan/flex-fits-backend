@@ -1,15 +1,22 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { randomBytes } = require('crypto');
+const { promisify } = require('util');
 
 const Helper = {
-  generateToken(user, ctx) {
+  generateToken(user, response) {
     const token = jwt.sign({ userId: user.id }, process.env.APP_SECRET);
     // Set the JWT token as a cookie on the response
-    ctx.response.cookie('token', token, {
+    response.cookie('token', token, {
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year expiry
+      maxAge: TIME.ONE_YEAR,
     });
   }
+}
+
+const TIME = {
+  ONE_HOUR: 1000 * 60 * 60,
+  ONE_YEAR: 1000 * 60 * 60 * 24 * 365,
 }
 
 const Mutation = {
@@ -45,23 +52,23 @@ const Mutation = {
   },
 
   /** USERS */
-  async signup(parent, args, ctx, info) {
+  async signup(parent, args, { db, response }, info) {
     args.email = args.email.toLowerCase();
     const password = await bcrypt.hash(args.password, 10);
-    const user = await ctx.db.mutation.createUser({
+    const user = await db.mutation.createUser({
       data: {
         ...args,
         password,
         permissions: { set: ['USER'] },
       }
     }, info);
-    Helper.generateToken(user, ctx);
+    Helper.generateToken(user, response);
     return user
   },
 
-  async signin(parent, { email, password }, ctx, info) {
+  async signin(parent, { email, password }, { db, response }, info) {
     // fetch user
-    const user = await ctx.db.query.user({ where: { email } });
+    const user = await db.query.user({ where: { email } });
     if (!user) {
       throw new Error(`Email does not exist!`);
     }
@@ -70,13 +77,62 @@ const Mutation = {
     if (!valid) {
       throw new Error("Invalid Password!");
     }
-    Helper.generateToken(user, ctx);
+    Helper.generateToken(user, response);
     return user;
   },
 
-  signout(parent, args, ctx, info) {
-    ctx.response.clearCookie('token');
+  signout(parent, args, { response }, info) {
+    response.clearCookie('token');
     return { message: 'Signed Out' }
+  },
+
+  async requestPasswordReset(parent, { email }, { db }, info) {
+    // Check if the user is valid
+    const user = await db.query.user({ where: { email }});
+    if (!user) {
+      throw new Error('Email does not exist');
+    }
+    // Set a reset token on that user and set an expiry date
+    const resetToken = (await promisify(randomBytes)(20)).toString('hex')
+    const resetTokenExpiry = Date.now() + TIME.ONE_HOUR;
+    await db.mutation.updateUser({
+      where: { email },
+      data: { resetToken, resetTokenExpiry }
+    });
+    return { message: "Successful!" }
+    // Email them the token
+  },
+
+  async resetPassword(parent, args, { db, response }, info) {
+    const { resetToken, password, confirmPassword } = args;
+    // check if confirmPassword matches newPassword
+    if (password !== confirmPassword) {
+      throw new Error("Passwords  does not match");
+    }
+
+    // Check if valid token
+    const [user] = await db.query.users({
+      where: {
+        resetToken,
+        resetToken_gte: Date.now() - TIME.ONE_HOUR,
+      }
+    });
+    if (!user) {
+      throw new Error("Invalid or expired token");
+    }
+    // Hash new password
+    const passwordHash = await bcrypt.hash(password, 10);
+    // save password and remove old resetToken and resetTokenExpiry
+    const updatedUser = await db.mutation.updateUser({
+      where: { email: user.email },
+      data: {
+        password: passwordHash,
+        resetToken: null,
+        resetTokenExpiry: null,
+      }
+    });
+    Helper.generateToken(updatedUser, response);
+    return updatedUser;
   }
 };
 
