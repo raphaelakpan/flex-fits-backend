@@ -29,7 +29,8 @@ const TIME = {
 const Mutation = {
   /** ITEMS  */
   async createItem(parent, { data }, { db, request }, info) {
-    Helper.userLoggedIn(request.userId);
+    const { userId } = request;
+    Helper.userLoggedIn(userId);
     const item = await db.mutation.createItem({
       data: {
         ...data,
@@ -52,7 +53,7 @@ const Mutation = {
 
   async deleteItem(parent, { where }, { db, request }, info) {
     Helper.userLoggedIn(request.userId);
-    const item = await db.query.item(where, `
+    const item = await db.query.item({ where }, `
       {
         id
         title
@@ -67,15 +68,23 @@ const Mutation = {
   async signup(parent, args, { db, response }, info) {
     args.email = args.email.toLowerCase();
     const password = await bcrypt.hash(args.password, 10);
-    const user = await db.mutation.createUser({
-      data: {
-        ...args,
-        password,
-        permissions: { set: ['USER'] },
+    try {
+      const user = await db.mutation.createUser({
+        data: {
+          ...args,
+          password,
+          permissions: { set: ['USER'] },
+        }
+      }, info);
+      Helper.generateToken(user, response);
+      return user
+    } catch(error) {
+      if (
+        error.message.match(/unique constraint would be violated on User. Details: Field name = email/)
+      ) {
+        throw new Error('Email has already been registered');
       }
-    }, info);
-    Helper.generateToken(user, response);
-    return user
+    }
   },
 
   async signin(parent, { email, password }, { db, response }, info) {
@@ -120,7 +129,7 @@ const Mutation = {
     const { resetToken, password, confirmPassword } = args;
     // check if confirmPassword matches newPassword
     if (password !== confirmPassword) {
-      throw new Error("Passwords  does not match");
+      throw new Error("Passwords do not match");
     }
 
     // Check if valid token
