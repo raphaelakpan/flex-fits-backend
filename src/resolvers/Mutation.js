@@ -12,6 +12,12 @@ const Helper = {
       httpOnly: true,
       maxAge: TIME.ONE_YEAR,
     });
+  },
+
+  userLoggedIn(userId) {
+    if (!userId) {
+      throw new Error('You must be logged in');
+    }
   }
 }
 
@@ -22,26 +28,31 @@ const TIME = {
 
 const Mutation = {
   /** ITEMS  */
-  async createItem(parent, args, ctx, info) {
-    const item = await ctx.db.mutation.createItem({
-      data: { ...args.data }
+  async createItem(parent, { data }, { db, request }, info) {
+    Helper.userLoggedIn(request.userId);
+    const item = await db.mutation.createItem({
+      data: {
+        ...data,
+        user: {
+          connect: {
+            id: userId
+          }
+        }
+      }
     }, info);
 
     return item;
   },
 
-  async updateItem(parent, args, ctx, info) {
-    const item = await ctx.db.mutation.updateItem({
-      data: args.data,
-      where: args.where,
-    }, info);
-
+  async updateItem(parent, { data, where }, { db, request }, info) {
+    Helper.userLoggedIn(request.userId);
+    const item = await db.mutation.updateItem({ data, where }, info);
     return item;
   },
 
-  async deleteItem(parent, args, ctx, info) {
-    const where = { where: args.where }
-    const item = await ctx.db.query.item(where, `
+  async deleteItem(parent, { where }, { db, request }, info) {
+    Helper.userLoggedIn(request.userId);
+    const item = await db.query.item(where, `
       {
         id
         title
@@ -49,7 +60,7 @@ const Mutation = {
     `);
     // TODO: Check if they own the item or have permissions
 
-    return ctx.db.mutation.deleteItem(where, info);
+    return db.mutation.deleteItem(where, info);
   },
 
   /** USERS */

@@ -22,9 +22,21 @@ type Query {
   currentUser: User
 }
 
+# override User from ./generated/prisma.graphql'
+# so we don't expose password, resetToken, etc to client
 type User {
   id: ID!
   name: String!
   email: String!
   permissions: [Permission!]!
+}
+
+# override ItemCreateInput from ./generated/prisma.graphql'
+# so that User would not be required from client
+input ItemCreateInput {
+  title: String!
+  description: String!
+  image: String
+  largeImage: String
+  price: Int!
 }
