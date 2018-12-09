@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { randomBytes } = require('crypto');
 const { promisify } = require('util');
+const { passwordResetMail } = require('../mail');
 
 const Helper = {
   generateToken(user, response) {
@@ -99,8 +100,9 @@ const Mutation = {
       where: { email },
       data: { resetToken, resetTokenExpiry }
     });
-    return { message: "Successful!" }
     // Email them the token
+    await passwordResetMail(user, resetToken);
+    return { message: "Successful!" }
   },
 
   async resetPassword(parent, args, { db, response }, info) {
@@ -114,7 +116,7 @@ const Mutation = {
     const [user] = await db.query.users({
       where: {
         resetToken,
-        resetToken_gte: Date.now() - TIME.ONE_HOUR,
+        resetTokenExpiry_gte: Date.now() - TIME.ONE_HOUR,
       }
     });
     if (!user) {
