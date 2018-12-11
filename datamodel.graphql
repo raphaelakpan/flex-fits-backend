@@ -3,8 +3,7 @@ enum Permission {
   USER
   ITEM_CREATE
   ITEM_UPDATE
-  ITEM_DELETEs
-  PERMISSION_UPDATE
+  ITEM_DELETE
 }
 
 type User {

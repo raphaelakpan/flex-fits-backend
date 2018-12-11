@@ -1,36 +1,16 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const { randomBytes } = require('crypto');
 const { promisify } = require('util');
 const { passwordResetMail } = require('../mail');
-
-const Helper = {
-  generateToken(user, response) {
-    const token = jwt.sign({ userId: user.id }, process.env.APP_SECRET);
-    // Set the JWT token as a cookie on the response
-    response.cookie('token', token, {
-      httpOnly: true,
-      maxAge: TIME.ONE_YEAR,
-    });
-  },
-
-  userLoggedIn(userId) {
-    if (!userId) {
-      throw new Error('You must be logged in');
-    }
-  }
-}
-
-const TIME = {
-  ONE_HOUR: 1000 * 60 * 60,
-  ONE_YEAR: 1000 * 60 * 60 * 24 * 365,
-}
+const {
+  userLoggedIn, generateToken, TIME, hasPermission, PERMISSIONS
+} = require('./utils');
 
 const Mutation = {
   /** ITEMS  */
   async createItem(parent, { data }, { db, request }, info) {
     const { userId } = request;
-    Helper.userLoggedIn(userId);
+    userLoggedIn(userId);
     const item = await db.mutation.createItem({
       data: {
         ...data,
@@ -46,13 +26,13 @@ const Mutation = {
   },
 
   async updateItem(parent, { data, where }, { db, request }, info) {
-    Helper.userLoggedIn(request.userId);
+    userLoggedIn(request.userId);
     const item = await db.mutation.updateItem({ data, where }, info);
     return item;
   },
 
   async deleteItem(parent, { where }, { db, request }, info) {
-    Helper.userLoggedIn(request.userId);
+    userLoggedIn(request.userId);
     const item = await db.query.item({ where }, `
       {
         id
@@ -76,7 +56,7 @@ const Mutation = {
           permissions: { set: ['USER'] },
         }
       }, info);
-      Helper.generateToken(user, response);
+      generateToken(user, response);
       return user
     } catch(error) {
       if (
@@ -98,7 +78,7 @@ const Mutation = {
     if (!valid) {
       throw new Error("Invalid Password!");
     }
-    Helper.generateToken(user, response);
+    generateToken(user, response);
     return user;
   },
 
@@ -153,8 +133,23 @@ const Mutation = {
         resetTokenExpiry: null,
       }
     });
-    Helper.generateToken(updatedUser, response);
+    generateToken(updatedUser, response);
     return updatedUser;
+  },
+
+  async updatePermissions(parent, { permissions, userId }, { db, request }, info) {
+    userLoggedIn(request.userId);
+    hasPermission(request.user, [PERMISSIONS.ADMIN]);
+    // Ensure user cannot remove ADMIN permission from their account
+    if (request.user.id === userId && !permissions.includes(PERMISSIONS.ADMIN)) {
+      throw new Error("You cannot remove ADMIN permission from your account");
+    }
+    return db.mutation.updateUser({
+      where: { id: userId },
+      data: {
+        permissions: { set: permissions }
+      }
+    }, info);
   }
 };
 

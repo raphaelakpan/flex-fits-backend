@@ -1,5 +1,5 @@
 # source: https://eu1.prisma.sh/raphael-akpan-a56abd/flexx-fits/dev
-# timestamp: Sun Dec 09 2018 12:44:04 GMT+0100 (West Africa Standard Time)
+# timestamp: Tue Dec 11 2018 15:09:50 GMT+0100 (West Africa Standard Time)
 
 type AggregateItem {
   count: Int!
@@ -477,8 +477,7 @@ enum Permission {
   USER
   ITEM_CREATE
   ITEM_UPDATE
-  ITEM_DELETEs
-  PERMISSION_UPDATE
+  ITEM_DELETE
 }
 
 type Query {
