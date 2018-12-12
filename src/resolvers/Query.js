@@ -4,10 +4,7 @@ const { userLoggedIn, hasPermission, PERMISSIONS } = require('./utils');
 const Query = {
   /** ITEMS */
   items: forwardTo('db'),
-  async item(parent, args, ctx, info) {
-    const item = await ctx.db.query.item({ where: args.where });
-    return item;
-  },
+  item: forwardTo('db'),
   itemsConnection: forwardTo('db'),
 
   /** USERS */

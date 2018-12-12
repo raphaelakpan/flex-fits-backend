@@ -26,20 +26,28 @@ const Mutation = {
   },
 
   async updateItem(parent, { data, where }, { db, request }, info) {
-    userLoggedIn(request.userId);
-    const item = await db.mutation.updateItem({ data, where }, info);
-    return item;
+    const { user, userId } = request;
+    userLoggedIn(userId);
+    const item = await db.query.item({ where }, `
+      {
+        user { id }
+      }
+    `);
+    // Check if they own the item or have permissions
+    item.user.id !== userId && hasPermission(user, [PERMISSIONS.ADMIN, PERMISSIONS.ITEM_DELETE]);
+    return db.mutation.updateItem({ data, where }, info);
   },
 
   async deleteItem(parent, { where }, { db, request }, info) {
-    userLoggedIn(request.userId);
+    const { user, userId } = request;
+    userLoggedIn(userId);
     const item = await db.query.item({ where }, `
       {
-        id
-        title
+        user { id }
       }
     `);
-    // TODO: Check if they own the item or have permissions
+    // Check if they own the item or have permissions
+    item.user.id !== userId && hasPermission(user, [PERMISSIONS.ADMIN, PERMISSIONS.ITEM_DELETE]);
 
     return db.mutation.deleteItem(where, info);
   },
