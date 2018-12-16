@@ -26,6 +26,13 @@ const Mutation = {
   },
 
   async updateItem(parent, { data, where }, { db, request }, info) {
+    // validate required fields as not empty if present
+    ['title', 'description'].forEach(field => {
+      if (data[field] === undefined) return;
+      if (!data[field].trim()) {
+        throw new Error('Please provide valid values to update');
+      }
+    });
     const { user, userId } = request;
     userLoggedIn(userId);
     const item = await db.query.item({ where }, `
