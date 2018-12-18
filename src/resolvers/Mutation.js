@@ -165,6 +165,49 @@ const Mutation = {
         permissions: { set: permissions }
       }
     }, info);
+  },
+
+  async addToCart(parent, { itemId }, { db, request }, info) {
+    const { userId } = request;
+    userLoggedIn(request.userId);
+    // fetch existing cartItem for the userID and itemID
+    const [ existingCartItem ] = await db.query.cartItems({ where: {
+      user: { id: userId },
+      item: { id: itemId },
+    }});
+    // if found, increment quantity by 1
+    if (existingCartItem) {
+      return db.mutation.updateCartItem({
+        where: { id: existingCartItem.id },
+        data: { quantity: existingCartItem.quantity + 1 }
+      }, info);
+    }
+    // no cartIten record exists so we'll create a new one
+    return db.mutation.createCartItem({
+      data: {
+        user: { connect: { id: userId } },
+        item: { connect: { id: itemId } }
+      }
+    }, info);
+  },
+
+  async removeFromCart(parent, { id }, { db, request }, info) {
+    const { userId } = request;
+    userLoggedIn(userId);
+    const cartItem = await db.query.cartItem({
+      where: { id }
+    }, `{
+      user { id }
+    }`);
+    if (!cartItem) {
+      throw new Error('No Cart Item found!');
+    }
+    // check if user owns the item or has permissions
+    cartItem.user.id !== userId && hasPermission(user, [PERMISSIONS.ADMIN]);
+    // we're here so delete the item :)
+    return db.mutation.deleteCartItem({
+      where: { id }
+    }, info);
   }
 };
 
