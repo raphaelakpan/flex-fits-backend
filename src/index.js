@@ -12,15 +12,15 @@ server.express.use(cookieParser());
 server.express.use(async (req, res, next) => {
   const { token } = req.cookies;
   if (token) {
-    try {
       const { userId } = jwt.verify(token, process.env.APP_SECRET);
       const user = await db.query.user(
         { where: { id: userId } },
         `{ id, name, email, permissions }`
       );
-      req.userId = userId;
-      req.user = user;
-    } catch { }
+      if (user) {
+        req.userId = userId;
+        req.user = user;
+      }
   }
   next();
 });
