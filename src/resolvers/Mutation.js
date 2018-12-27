@@ -5,6 +5,7 @@ const { passwordResetMail } = require('../mail');
 const {
   userLoggedIn, generateToken, TIME, hasPermission, PERMISSIONS
 } = require('./utils');
+const stripe = require('../stripe');
 
 const Mutation = {
   /** ITEMS  */
@@ -208,6 +209,63 @@ const Mutation = {
     return db.mutation.deleteCartItem({
       where: { id }
     }, info);
+  },
+
+  async createOrder(parents, { token }, { request, db }, info) {
+    // check if user is logged in
+    userLoggedIn(request.userId);
+    const user = await db.query.user({
+      where: { id: request.userId }
+    }, `{
+      id
+      cart {
+        id
+        quantity
+        item {
+          id title description price image largeImage
+        }
+      }
+    }`)
+    // recalculate the total price for the order
+    const amount = user.cart.reduce((sum, cartItem) => sum + cartItem.item.price * cartItem.quantity, 0);
+
+    // create the stripe charge
+    const charge = await stripe.charges.create({
+      amount,
+      currency: 'USD',
+      source: token
+    });
+
+    // convert cartItems to orderItems
+    const orderItems = user.cart.map(cartItem => {
+      const { item, quantity } = cartItem;
+      return {
+        quantity,
+        title: item.title,
+        description: item.description,
+        price: item.price,
+        image: item.image,
+        largeImage: item.largeImage,
+      }
+    });
+    // create the order
+    const order = await db.mutation.createOrder({
+      data: {
+        total: charge.amount,
+        items: { create: orderItems },
+        user: { connect: { id: user.id } },
+        charge: charge.id,
+      }
+    }, info);
+    // clean up the user's cart, delete cartItems
+    const cartItemIds = user.cart.map(cartItem => cartItem.id);
+    await db.mutation.deleteManyCartItems({
+      where: {
+        id_in: cartItemIds,
+      }
+    });
+    // return the order to the client
+    return order;
   }
 };
 
