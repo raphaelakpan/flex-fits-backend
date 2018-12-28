@@ -32,6 +32,22 @@ const Query = {
     const order = await db.query.order({ where: { id } }, `{ user { id } }`);
     userId !== order.user.id && hasPermission(user, [PERMISSIONS.ADMIN]);
     return db.query.order({ where: { id } }, info);
+  },
+
+  async orders(parent, args, { request, db }, info) {
+    const { userId, user } = request;
+    userLoggedIn(userId);
+    let orders;
+    // if user is admin, fetch all orders
+    if (user.permissions.includes([PERMISSIONS.ADMIN])) {
+      orders = await db.query.orders(args, info);
+    } else {
+      // otherwise fetch only orders that belong to the user
+      orders = await db.query.orders({ where: {
+        user: { id: userId },
+      }, ...args }, info);
+    }
+    return orders;
   }
 };
 
