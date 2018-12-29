@@ -27,6 +27,7 @@ type Query {
   users: [User]!
   order(id: ID!): Order
   orders(orderBy: OrderOrderByInput, skip: Int, first: Int): [Order]!
+  ordersConnection: OrderConnection!
 }
 
 # override User from ./generated/prisma.graphql'

@@ -37,17 +37,26 @@ const Query = {
   async orders(parent, args, { request, db }, info) {
     const { userId, user } = request;
     userLoggedIn(userId);
-    let orders;
     // if user is admin, fetch all orders
     if (user.permissions.includes([PERMISSIONS.ADMIN])) {
-      orders = await db.query.orders(args, info);
-    } else {
-      // otherwise fetch only orders that belong to the user
-      orders = await db.query.orders({ where: {
+      return db.query.orders(args, info);
+    }
+    // otherwise fetch only orders that belong to the user
+    return db.query.orders({
+      where: {
         user: { id: userId },
       }, ...args }, info);
+  },
+
+  async ordersConnection(parent, args, { request, db }, info) {
+    const { userId, user } = request;
+    userLoggedIn(userId);
+    if (user.permissions.includes([PERMISSIONS.ADMIN])) {
+      return db.query.ordersConnection({}, info);
     }
-    return orders;
+    return db.query.ordersConnection({ where: {
+      user: { id: userId }
+    }}, info)
   }
 };
 
