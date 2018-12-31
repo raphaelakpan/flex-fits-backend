@@ -1,5 +1,5 @@
 # source: https://eu1.prisma.sh/raphael-akpan-a56abd/flexx-fits/dev
-# timestamp: Thu Dec 27 2018 07:00:20 GMT+0100 (WAT)
+# timestamp: Sun Dec 30 2018 22:54:48 GMT+0100 (WAT)
 
 type AggregateCartItem {
   count: Int!
@@ -854,6 +854,8 @@ type OrderItem implements Node {
   largeImage: String
   price: Int!
   quantity: Int!
+  soldBy: User
+  originalItem: Item
 }
 
 """A connection to a list of items."""
@@ -873,6 +875,8 @@ input OrderItemCreateInput {
   largeImage: String
   price: Int!
   quantity: Int
+  soldBy: UserCreateOneInput
+  originalItem: ItemCreateOneInput
 }
 
 input OrderItemCreateManyInput {
@@ -1221,6 +1225,8 @@ input OrderItemUpdateDataInput {
   largeImage: String
   price: Int
   quantity: Int
+  soldBy: UserUpdateOneInput
+  originalItem: ItemUpdateOneInput
 }
 
 input OrderItemUpdateInput {
@@ -1230,6 +1236,8 @@ input OrderItemUpdateInput {
   largeImage: String
   price: Int
   quantity: Int
+  soldBy: UserUpdateOneInput
+  originalItem: ItemUpdateOneInput
 }
 
 input OrderItemUpdateManyDataInput {
@@ -1530,6 +1538,8 @@ input OrderItemWhereInput {
 
   """All values greater than or equal the given value."""
   quantity_gte: Int
+  soldBy: UserWhereInput
+  originalItem: ItemWhereInput
 }
 
 input OrderItemWhereUniqueInput {
@@ -1986,6 +1996,15 @@ input UserUpdateManyMutationInput {
   resetToken: String
   resetTokenExpiry: Float
   permissions: UserUpdatepermissionsInput
+}
+
+input UserUpdateOneInput {
+  create: UserCreateInput
+  connect: UserWhereUniqueInput
+  disconnect: Boolean
+  delete: Boolean
+  update: UserUpdateDataInput
+  upsert: UserUpsertNestedInput
 }
 
 input UserUpdateOneRequiredInput {
