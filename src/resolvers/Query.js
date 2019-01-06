@@ -41,6 +41,7 @@ const Query = {
       },
       `{ user { id } }`
     );
+    if (!order) return;
     userId !== order.user.id && hasPermission(user, [PERMISSIONS.ADMIN]);
     return db.query.order(
       {
