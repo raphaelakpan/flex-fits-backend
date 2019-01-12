@@ -12,15 +12,30 @@ type Mutation {
   signin(email: String!, password: String!): User
   signout: SuccessMessage
   requestPasswordReset(email: String!): SuccessMessage
-  resetPassword(resetToken: String!, password: String!, confirmPassword: String!): User!
+  resetPassword(
+    resetToken: String!
+    password: String!
+    confirmPassword: String!
+  ): User!
   updatePermissions(permissions: [Permission], userId: ID!): User
   addToCart(itemId: ID!): CartItem!
   removeFromCart(id: ID!): CartItem!
   createOrder(token: String!): Order!
+  updateUser(
+    name: String
+    currentPassword: String
+    newPassword: String
+    confirmPassword: String
+  ): User!
 }
 
 type Query {
-  items(where: ItemWhereInput, orderBy: ItemOrderByInput, skip: Int, first: Int): [Item!]!
+  items(
+    where: ItemWhereInput
+    orderBy: ItemOrderByInput
+    skip: Int
+    first: Int
+  ): [Item!]!
   item(where: ItemWhereUniqueInput!): Item
   itemsConnection(where: ItemWhereInput): ItemConnection!
   currentUser: User

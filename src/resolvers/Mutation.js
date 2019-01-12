@@ -7,7 +7,8 @@ const {
   generateToken,
   TIME,
   hasPermission,
-  PERMISSIONS
+  PERMISSIONS,
+  validatePassword,
 } = require('./utils');
 const stripe = require('../stripe');
 
@@ -22,10 +23,10 @@ const Mutation = {
           ...data,
           user: {
             connect: {
-              id: userId
-            }
-          }
-        }
+              id: userId,
+            },
+          },
+        },
       },
       info
     );
@@ -45,7 +46,7 @@ const Mutation = {
     userLoggedIn(userId);
     const item = await db.query.item(
       {
-        where
+        where,
       },
       `{
         user { id }
@@ -57,7 +58,7 @@ const Mutation = {
     return db.mutation.updateItem(
       {
         data,
-        where
+        where,
       },
       info
     );
@@ -68,7 +69,7 @@ const Mutation = {
     userLoggedIn(userId);
     const item = await db.query.item(
       {
-        where
+        where,
       },
       `{
         user { id }
@@ -84,6 +85,7 @@ const Mutation = {
   /** USERS */
   async signup(parent, args, { db, response }, info) {
     args.email = args.email.toLowerCase();
+    validatePassword(...args, password);
     const password = await bcrypt.hash(args.password, 10);
     try {
       const user = await db.mutation.createUser(
@@ -92,9 +94,9 @@ const Mutation = {
             ...args,
             password,
             permissions: {
-              set: ['USER']
-            }
-          }
+              set: ['USER'],
+            },
+          },
         },
         info
       );
@@ -115,8 +117,8 @@ const Mutation = {
     // fetch user
     const user = await db.query.user({
       where: {
-        email
-      }
+        email,
+      },
     });
     if (!user) {
       throw new Error('Email does not exist!');
@@ -133,7 +135,7 @@ const Mutation = {
   signout(parent, args, { response }, info) {
     response.clearCookie('token');
     return {
-      message: 'Signed Out'
+      message: 'Signed Out',
     };
   },
 
@@ -141,8 +143,8 @@ const Mutation = {
     // Check if the user is valid
     const user = await db.query.user({
       where: {
-        email
-      }
+        email,
+      },
     });
     if (!user) {
       throw new Error('Email does not exist');
@@ -152,17 +154,17 @@ const Mutation = {
     const resetTokenExpiry = Date.now() + TIME.ONE_HOUR;
     await db.mutation.updateUser({
       where: {
-        email
+        email,
       },
       data: {
         resetToken,
-        resetTokenExpiry
-      }
+        resetTokenExpiry,
+      },
     });
     // Email them the token
     await passwordResetMail(user, resetToken);
     return {
-      message: 'Successful!'
+      message: 'Successful!',
     };
   },
 
@@ -177,24 +179,25 @@ const Mutation = {
     const [user] = await db.query.users({
       where: {
         resetToken,
-        resetTokenExpiry_gte: Date.now() - TIME.ONE_HOUR
-      }
+        resetTokenExpiry_gte: Date.now() - TIME.ONE_HOUR,
+      },
     });
     if (!user) {
       throw new Error('Invalid or expired token');
     }
+    validatePassword(user, password);
     // Hash new password
     const passwordHash = await bcrypt.hash(password, 10);
     // save password and remove old resetToken and resetTokenExpiry
     const updatedUser = await db.mutation.updateUser({
       where: {
-        email: user.email
+        email: user.email,
       },
       data: {
         password: passwordHash,
         resetToken: null,
-        resetTokenExpiry: null
-      }
+        resetTokenExpiry: null,
+      },
     });
     generateToken(updatedUser, response);
     return updatedUser;
@@ -218,13 +221,13 @@ const Mutation = {
     return db.mutation.updateUser(
       {
         where: {
-          id: userId
+          id: userId,
         },
         data: {
           permissions: {
-            set: permissions
-          }
-        }
+            set: permissions,
+          },
+        },
       },
       info
     );
@@ -237,23 +240,23 @@ const Mutation = {
     const [existingCartItem] = await db.query.cartItems({
       where: {
         user: {
-          id: userId
+          id: userId,
         },
         item: {
-          id: itemId
-        }
-      }
+          id: itemId,
+        },
+      },
     });
     // if found, increment quantity by 1
     if (existingCartItem) {
       return db.mutation.updateCartItem(
         {
           where: {
-            id: existingCartItem.id
+            id: existingCartItem.id,
           },
           data: {
-            quantity: existingCartItem.quantity + 1
-          }
+            quantity: existingCartItem.quantity + 1,
+          },
         },
         info
       );
@@ -264,15 +267,15 @@ const Mutation = {
         data: {
           user: {
             connect: {
-              id: userId
-            }
+              id: userId,
+            },
           },
           item: {
             connect: {
-              id: itemId
-            }
-          }
-        }
+              id: itemId,
+            },
+          },
+        },
       },
       info
     );
@@ -284,8 +287,8 @@ const Mutation = {
     const cartItem = await db.query.cartItem(
       {
         where: {
-          id
-        }
+          id,
+        },
       },
       `{
         user { id }
@@ -300,8 +303,8 @@ const Mutation = {
     return db.mutation.deleteCartItem(
       {
         where: {
-          id
-        }
+          id,
+        },
       },
       info
     );
@@ -313,8 +316,8 @@ const Mutation = {
     const user = await db.query.user(
       {
         where: {
-          id: request.userId
-        }
+          id: request.userId,
+        },
       },
       `{
         id
@@ -339,7 +342,7 @@ const Mutation = {
     const charge = await stripe.charges.create({
       amount,
       currency: 'USD',
-      source: token
+      source: token,
     });
 
     // convert cartItems to orderItems
@@ -354,14 +357,14 @@ const Mutation = {
         largeImage: item.largeImage,
         soldBy: {
           connect: {
-            id: item.user.id
-          }
+            id: item.user.id,
+          },
         },
         originalItem: {
           connect: {
-            id: item.id
-          }
-        }
+            id: item.id,
+          },
+        },
       };
     });
     // create the order
@@ -370,15 +373,15 @@ const Mutation = {
         data: {
           total: charge.amount,
           items: {
-            create: orderItems
+            create: orderItems,
           },
           user: {
             connect: {
-              id: user.id
-            }
+              id: user.id,
+            },
           },
-          charge: charge.id
-        }
+          charge: charge.id,
+        },
       },
       info
     );
@@ -386,12 +389,52 @@ const Mutation = {
     const cartItemIds = user.cart.map(cartItem => cartItem.id);
     await db.mutation.deleteManyCartItems({
       where: {
-        id_in: cartItemIds
-      }
+        id_in: cartItemIds,
+      },
     });
     // return the order to the client
     return order;
-  }
+  },
+
+  async updateUser(parent, args, { request, db }, info) {
+    // check if user is logged in
+    const { userId } = request;
+    userLoggedIn(userId);
+    const { name, currentPassword, newPassword, confirmPassword } = args;
+    if (currentPassword) {
+      if (newPassword !== confirmPassword)
+        throw new Error("Passwords don't match");
+      const user = await db.query.user(
+        {
+          where: { id: userId },
+        },
+        `{ name, email, password }`
+      );
+      // validate their current password
+      const valid = await bcrypt.compare(currentPassword, user.password);
+      if (!valid) throw new Error('Invalid current Password!');
+      // perform password validations
+      validatePassword(user, newPassword);
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      return db.mutation.updateUser(
+        {
+          where: { id: userId },
+          data: { password: passwordHash },
+        },
+        info
+      );
+    } else if (name) {
+      return db.mutation.updateUser(
+        {
+          where: { id: userId },
+          data: { name },
+        },
+        info
+      );
+    }
+    // if we're here the user didn't provide any values to update
+    throw new Error('Provide valid values to update');
+  },
 };
 
 module.exports = Mutation;
