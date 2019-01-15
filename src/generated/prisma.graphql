@@ -1,5 +1,5 @@
-# source: https://eu1.prisma.sh/raphael-akpan-a56abd/flexx-fits/dev
-# timestamp: Sun Dec 30 2018 22:54:48 GMT+0100 (WAT)
+# source: https://flex-fits-prod-234f8938f0.herokuapp.com/flex-fits/prod
+# timestamp: Sun Jan 13 2019 20:21:29 GMT+0100 (WAT)
 
 type AggregateCartItem {
   count: Int!
