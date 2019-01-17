@@ -85,7 +85,7 @@ const Mutation = {
   /** USERS */
   async signup(parent, args, { db, response }, info) {
     args.email = args.email.toLowerCase();
-    validatePassword(...args, password);
+    validatePassword(args, args.password);
     const password = await bcrypt.hash(args.password, 10);
     try {
       const user = await db.mutation.createUser(
