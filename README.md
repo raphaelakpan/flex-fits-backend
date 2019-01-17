@@ -2,7 +2,7 @@
 
 Flex Fits is a sample online store 🛍 . This is the GraphQL API for the application.
 
-GraphQL Server ➡ [Hosted on Heroku](flex-fits-server.herokuapp.com)
+GraphQL Server ➡ [Hosted on Heroku](https://flex-fits-server.herokuapp.com)
 
 > Create a user account with a real email (to receive email) and play around with the app.
 >
