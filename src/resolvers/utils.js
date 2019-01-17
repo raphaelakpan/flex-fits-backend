@@ -38,6 +38,11 @@ const validatePassword = function(user, password) {
   }
 };
 
+const doNotUpdateDefaultAdmin = function(user) {
+  if (user.email === 'admin@flexfits.com')
+    throw new Error('Cannot update default admin');
+};
+
 const TIME = {
   ONE_HOUR: 1000 * 60 * 60,
   ONE_YEAR: 1000 * 60 * 60 * 24 * 365,
@@ -58,4 +63,5 @@ module.exports = {
   TIME,
   PERMISSIONS,
   validatePassword,
+  doNotUpdateDefaultAdmin,
 };

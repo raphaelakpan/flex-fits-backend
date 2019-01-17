@@ -9,6 +9,7 @@ const {
   hasPermission,
   PERMISSIONS,
   validatePassword,
+  doNotUpdateDefaultAdmin,
 } = require('./utils');
 const stripe = require('../stripe');
 
@@ -149,6 +150,7 @@ const Mutation = {
     if (!user) {
       throw new Error('Email does not exist');
     }
+    doNotUpdateDefaultAdmin(user);
     // Set a reset token on that user and set an expiry date
     const resetToken = (await promisify(randomBytes)(20)).toString('hex');
     const resetTokenExpiry = Date.now() + TIME.ONE_HOUR;
@@ -211,6 +213,7 @@ const Mutation = {
   ) {
     userLoggedIn(request.userId);
     hasPermission(request.user, [PERMISSIONS.ADMIN]);
+    doNotUpdateDefaultAdmin(request.user);
     // Ensure user cannot remove ADMIN permission from their account
     if (
       request.user.id === userId &&
@@ -400,6 +403,7 @@ const Mutation = {
     // check if user is logged in
     const { userId } = request;
     userLoggedIn(userId);
+    doNotUpdateDefaultAdmin(request.user);
     const { name, currentPassword, newPassword, confirmPassword } = args;
     if (currentPassword) {
       if (newPassword !== confirmPassword)
