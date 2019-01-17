@@ -1,13 +1,6 @@
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
-const transport = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,
-  port: process.env.MAIL_PORT,
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  }
-});
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const emailTemplate = (text, user) => `
   <div class="email" style="
@@ -23,23 +16,24 @@ const emailTemplate = (text, user) => `
   </div>
 `;
 
-const passwordResetMail = (user, resetToken) => transport.sendMail({
-  from: 'no-reply@flexfits.com',
-  to: user.email,
-  subject: 'Your password reset token',
-  html: emailTemplate(
-    `Your password reset token is here. <br />
-    <a style="
-      background: #258afb;
-      padding: 10px 15px;
-      color: #fff;
-      text-decoration: none;
-    " href="${process.env.FRONTEND_URL}/reset_password?resetToken=${resetToken}">Click here to reset Password</a>
+const passwordResetMail = (user, resetToken) =>
+  sgMail.send({
+    from: 'no-reply@flexfits.com',
+    to: user.email,
+    subject: 'Your password reset token',
+    html: emailTemplate(
+      `Your password reset token is here. <br /> <br />
+      <a style="
+        background: #258afb;
+        padding: 10px 15px;
+        color: #fff;
+        text-decoration: none;
+      " href="${
+        process.env.FRONTEND_URL
+      }/reset_password?resetToken=${resetToken}">Click here to reset Password</a>
     `,
-    user
-  ),
-});
+      user
+    ),
+  });
 
-exports.transport = transport;
-exports.emailTemplate = emailTemplate;
 exports.passwordResetMail = passwordResetMail;

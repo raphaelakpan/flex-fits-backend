@@ -26,7 +26,7 @@ const hasPermission = function(user, permissionsNeeded) {
 
 const validatePassword = function(user, password) {
   if (password.trim() === '' || password.trim().length < 6) {
-    throw new Error('Invalid password; must be 6 character long');
+    throw new Error('Invalid password; must be atleast 6 character long');
   }
   const includesName = user.name
     .toLowerCase()
