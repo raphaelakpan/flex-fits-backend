@@ -7,7 +7,7 @@ const generateToken = function(user, response) {
     httpOnly: true,
     maxAge: TIME.ONE_YEAR,
     secure: true,
-    sameSite: 'none'
+    domain: 'flex-fits-frontend.herokuapp.com'
   });
 };
 
