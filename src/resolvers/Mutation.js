@@ -122,12 +122,12 @@ const Mutation = {
       },
     });
     if (!user) {
-      throw new Error('Email does not exist!');
+      throw new Error('Invalid Email or Password!');
     }
     // check if password is valid
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-      throw new Error('Invalid Password!');
+      throw new Error('Invalid Email or Password!');
     }
     generateToken(user, response);
     return user;
@@ -147,9 +147,11 @@ const Mutation = {
         email,
       },
     });
-    if (!user) {
-      throw new Error('Email does not exist');
-    }
+    // Don't expose whether we have the user or not
+    if (!user) return {
+      message: 'Successful!',
+    };
+
     doNotUpdateDefaultAdmin(user);
     // Set a reset token on that user and set an expiry date
     const resetToken = (await promisify(randomBytes)(20)).toString('hex');
