@@ -6,8 +6,6 @@ const generateToken = function(user, response) {
   response.cookie('token', token, {
     httpOnly: true,
     maxAge: TIME.ONE_YEAR,
-    secure: true,
-    domain: 'flex-fits-frontend.herokuapp.com'
   });
 };
 
