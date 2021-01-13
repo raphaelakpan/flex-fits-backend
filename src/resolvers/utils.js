@@ -6,7 +6,8 @@ const generateToken = function(user, response) {
   response.cookie('token', token, {
     httpOnly: true,
     maxAge: TIME.ONE_YEAR,
-    sameSite: 'Strict'
+    sameSite: 'None',
+    secure: true
   });
 };
 
